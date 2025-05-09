@@ -10,30 +10,44 @@ import {
 } from "../api/booksApi";
 import React from "react";
 
+// Reusable logging helper
+const logError = (error: unknown, context: string) => {
+  console.error(`Error in ${context}:`, error);
+  // Integrate with Sentry, LogRocket, etc. here if desired
+};
+
+// Reusable error handler
+const onError = (action: string) => (error: Error) => {
+  const message = error.message || "An unexpected error occurred.";
+  showNotification({
+    title: "Error",
+    message: `Failed to ${action} book: ${message}`,
+    color: "red",
+    icon: React.createElement(IconX, { size: 18 }),
+    autoClose: 3000,
+  });
+  logError(error, action);
+};
+
 export const useBooks = () => {
   const queryClient = useQueryClient();
 
-  // Fetch books
-  const {
-    data: books,
-    isLoading,
-    isError,
-  } = useQuery<Book[]>({
+  const query = useQuery<Book[], Error, Book[], ["books"]>({
     queryKey: ["books"],
     queryFn: fetchBooks,
+    retry: 1, // Optional: disables infinite retry
+    gcTime: 0, // Optional: disables cache for demo apps
+    throwOnError: false, // Optional: explicitly suppress throwing
+    // ✅ Temporarily remove `onError` from here
   });
 
-  // --- Mutation handlers ---
-  const onError = (action: string) => (error: unknown) => {
-    console.error(`Error during ${action}:`, error);
-    showNotification({
-      title: "Error",
-      message: `Failed to ${action} book.`,
-      color: "red",
-      icon: React.createElement(IconX, { size: 18 }),
-      autoClose: 3000,
-    });
-  };
+  const { data: books, isLoading, isError, error } = query;
+
+  React.useEffect(() => {
+    if (isError && error) {
+      onError("fetch")(error);
+    }
+  }, [isError, error]);
 
   const addBook = useMutation({
     mutationFn: createBook,
@@ -81,8 +95,6 @@ export const useBooks = () => {
     onError: onError("delete"),
   });
 
-  // --- Return API and mutation states ---
-
   return {
     books,
     isLoading,
@@ -90,13 +102,8 @@ export const useBooks = () => {
     addBook,
     updateBook: updateBookMutation,
     deleteBook,
-
-    // Optional flags for UI feedback
     isAdding: addBook.isPending,
     isUpdating: updateBookMutation.isPending,
     isDeleting: deleteBook.isPending,
-    addSuccess: addBook.isSuccess,
-    updateSuccess: updateBookMutation.isSuccess,
-    deleteSuccess: deleteBook.isSuccess,
   };
 };
