@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import React from "react";
 import { showNotification } from "@mantine/notifications";
+import { IconCheck, IconTrash, IconEdit, IconX } from "@tabler/icons-react";
 import type { Book } from "../types/Book";
 import {
   fetchBooks,
@@ -8,11 +8,12 @@ import {
   updateBook,
   deleteBook as deleteBookApi,
 } from "../api/booksApi";
-import { IconCheck, IconTrash, IconEdit } from "@tabler/icons-react";
+import React from "react";
 
 export const useBooks = () => {
   const queryClient = useQueryClient();
 
+  // Fetch books
   const {
     data: books,
     isLoading,
@@ -21,6 +22,18 @@ export const useBooks = () => {
     queryKey: ["books"],
     queryFn: fetchBooks,
   });
+
+  // --- Mutation handlers ---
+  const onError = (action: string) => (error: unknown) => {
+    console.error(`Error during ${action}:`, error);
+    showNotification({
+      title: "Error",
+      message: `Failed to ${action} book.`,
+      color: "red",
+      icon: React.createElement(IconX, { size: 18 }),
+      autoClose: 3000,
+    });
+  };
 
   const addBook = useMutation({
     mutationFn: createBook,
@@ -34,6 +47,7 @@ export const useBooks = () => {
         autoClose: 3000,
       });
     },
+    onError: onError("add"),
   });
 
   const updateBookMutation = useMutation({
@@ -49,6 +63,7 @@ export const useBooks = () => {
         autoClose: 3000,
       });
     },
+    onError: onError("update"),
   });
 
   const deleteBook = useMutation({
@@ -63,7 +78,10 @@ export const useBooks = () => {
         autoClose: 3000,
       });
     },
+    onError: onError("delete"),
   });
+
+  // --- Return API and mutation states ---
 
   return {
     books,
@@ -72,5 +90,13 @@ export const useBooks = () => {
     addBook,
     updateBook: updateBookMutation,
     deleteBook,
+
+    // Optional flags for UI feedback
+    isAdding: addBook.isPending,
+    isUpdating: updateBookMutation.isPending,
+    isDeleting: deleteBook.isPending,
+    addSuccess: addBook.isSuccess,
+    updateSuccess: updateBookMutation.isSuccess,
+    deleteSuccess: deleteBook.isSuccess,
   };
 };

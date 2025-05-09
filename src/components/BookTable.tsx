@@ -1,8 +1,17 @@
-import { Table, Button, Group, Text, Paper, Card, Stack } from "@mantine/core";
-import type { Book } from "../types/Book";
+import {
+  Button,
+  Group,
+  Text,
+  Paper,
+  Stack,
+  Card,
+  Collapse,
+} from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { Collapse } from "@mantine/core";
-import { useState } from "react";
+import { useState, Fragment } from "react";
+import type { Book } from "../types/Book";
+import ToggleDescription from "./ToggleDescription";
+import "../styles/BookTable.css";
 
 interface BookTableProps {
   books: Book[];
@@ -18,7 +27,6 @@ const BookTable = ({ books, onEdit, onDelete, onView }: BookTableProps) => {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   if (isMobile) {
-    // Mobile layout
     return (
       <Stack gap="sm" mt="md">
         {books.map((book) => (
@@ -37,24 +45,14 @@ const BookTable = ({ books, onEdit, onDelete, onView }: BookTableProps) => {
               {book.author} • {book.year}
             </Text>
             <ToggleDescription description={book.description} />
-
-            <Group
-              justify="flex-start"
-              gap="xs"
-              wrap="wrap"
-              style={{ justifyContent: "center", marginTop: "20px" }}
-            >
-              <Button size="xs" variant="light" onClick={() => onView(book)}>
+            <Group justify="center" gap="xs" wrap="wrap" mt="md">
+              <Button size="xs" onClick={() => onView(book)}>
                 View
               </Button>
-              <Button size="xs" variant="outline" onClick={() => onEdit(book)}>
+              <Button size="xs" onClick={() => onEdit(book)}>
                 Edit
               </Button>
-              <Button
-                size="xs"
-                color="red"
-                onClick={() => book.id && onDelete(book.id)}
-              >
+              <Button size="xs" color="red" onClick={() => onDelete(book.id!)}>
                 Delete
               </Button>
             </Group>
@@ -64,134 +62,75 @@ const BookTable = ({ books, onEdit, onDelete, onView }: BookTableProps) => {
     );
   }
 
-  // Desktop layout
   return (
     <Paper withBorder shadow="md" radius="md" p="md" w="100%">
-      <Table
-        striped
-        highlightOnHover
-        verticalSpacing="md"
-        horizontalSpacing="xl"
-      >
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left" }}>Title</th>
-            <th style={{ textAlign: "left" }}>Author</th>
-            <th style={{ textAlign: "center" }}>Year</th>
-            <th style={{ textAlign: "center" }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {books.length > 0 ? (
-            books.flatMap((book) => {
-              const isOpen = openDescriptions[book.id!] || false;
+      <div className="table">
+        <div className="table-head">
+          <div>Title</div>
+          <div>Author</div>
+          <div style={{ textAlign: "center" }}>Year</div>
+          <div style={{ textAlign: "center" }}>Actions</div>
+        </div>
 
-              return [
-                <tr key={book.id}>
-                  <td style={{ textAlign: "left" }}>
-                    <Text size="sm" fw={500}>
-                      {book.title}
-                    </Text>
-                    <Text
+        {books.map((book) => {
+          const isOpen = openDescriptions[book.id!] || false;
+
+          return (
+            <Fragment key={book.id}>
+              <div className="table-row">
+                <div>
+                  <Text size="sm" fw={500}>
+                    {book.title}
+                  </Text>
+                  <Text
+                    size="xs"
+                    c="blue"
+                    mt={4}
+                    style={{ cursor: "pointer", textDecoration: "underline" }}
+                    onClick={() =>
+                      setOpenDescriptions((prev) => ({
+                        ...prev,
+                        [book.id!]: !prev[book.id!],
+                      }))
+                    }
+                  >
+                    {isOpen ? "Hide description" : "Show description"}
+                  </Text>
+                </div>
+                <div>{book.author}</div>
+                <div style={{ textAlign: "center" }}>{book.year}</div>
+                <div style={{ textAlign: "center" }}>
+                  <Group justify="center" gap="xs">
+                    <Button size="xs" onClick={() => onView(book)}>
+                      View
+                    </Button>
+                    <Button size="xs" onClick={() => onEdit(book)}>
+                      Edit
+                    </Button>
+                    <Button
                       size="xs"
-                      c="blue"
-                      mt={4}
-                      style={{
-                        cursor: "pointer",
-                        textDecoration: "underline",
-                      }}
-                      onClick={() =>
-                        setOpenDescriptions((prev) => ({
-                          ...prev,
-                          [book.id!]: !prev[book.id!],
-                        }))
-                      }
+                      color="red"
+                      onClick={() => onDelete(book.id!)}
                     >
-                      {isOpen ? "Hide description" : "Show description"}
-                    </Text>
-                  </td>
-                  <td style={{ textAlign: "left" }}>{book.author}</td>
-                  <td style={{ textAlign: "center" }}>{book.year}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <Group gap="xs" justify="center" wrap="wrap">
-                      <Button
-                        size="xs"
-                        radius="md"
-                        variant="light"
-                        color="blue"
-                        onClick={() => onView(book)}
-                      >
-                        View
-                      </Button>
-                      <Button
-                        size="xs"
-                        radius="md"
-                        variant="outline"
-                        color="blue"
-                        onClick={() => onEdit(book)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="xs"
-                        radius="md"
-                        color="red"
-                        onClick={() => book.id && onDelete(book.id)}
-                      >
-                        Delete
-                      </Button>
-                    </Group>
-                  </td>
-                </tr>,
+                      Delete
+                    </Button>
+                  </Group>
+                </div>
+              </div>
 
-                isOpen && (
-                  <tr key={`${book.id}-description`}>
-                    <td colSpan={4}>
-                      <Collapse in={true}>
-                        <Text size="xs" c="dimmed" mt={4}>
-                          {book.description || "No description."}
-                        </Text>
-                      </Collapse>
-                    </td>
-                  </tr>
-                ),
-              ];
-            })
-          ) : (
-            <tr>
-              <td colSpan={4}>
-                <Text size="sm" fw={500}>
-                  No books found.
-                </Text>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </Table>
+              <Collapse in={isOpen}>
+                <div className="description-collapse">
+                  <Text size="xs" c="dimmed">
+                    {book.description || "No description."}
+                  </Text>
+                </div>
+              </Collapse>
+            </Fragment>
+          );
+        })}
+      </div>
     </Paper>
   );
 };
-const ToggleDescription = ({ description }: { description: string }) => {
-  const [opened, setOpened] = useState(false);
 
-  return (
-    <>
-      <Text
-        size="xs"
-        c="blue"
-        mt={4}
-        style={{ cursor: "pointer", textDecoration: "underline" }}
-        onClick={() => setOpened((o) => !o)}
-      >
-        {opened ? "Hide description" : "Show description"}
-      </Text>
-
-      <Collapse in={opened}>
-        <Text size="xs" c="dimmed" mt={4}>
-          {description || "No description."}
-        </Text>
-      </Collapse>
-    </>
-  );
-};
 export default BookTable;
